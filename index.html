@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loadout Randomizer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, sans-serif;
+      background: #141719;
+      color: #f4f5f2;
+    }
+
+    body { margin: 0; }
+
+    main {
+      max-width: 46rem;
+      margin-inline: auto;
+      padding: clamp(1rem, 5vw, 3rem);
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 { margin: 0; font-size: clamp(1.75rem, 5vw, 2.5rem); }
+
+    button {
+      padding: .7rem 1rem;
+      border: 0;
+      border-radius: .35rem;
+      background: #e8d94f;
+      color: #141719;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover { background: #fff078; }
+
+    button:focus-visible,
+    a:focus-visible { outline: 2px solid white; outline-offset: 4px; }
+
+    #loadout {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .75rem;
+    }
+
+    section {
+      padding: 1rem 1.15rem;
+      border: 1px solid #3c4449;
+      border-radius: .5rem;
+      background: #1e2326;
+      overflow-wrap: anywhere;
+    }
+
+    section:last-child { grid-column: 1 / -1; }
+    h2 { margin: 0 0 .55rem; color: #e8d94f; font-size: .95rem; }
+
+    .equipment-image {
+      display: block;
+      border-radius: .3rem;
+      background: #171b1d;
+    }
+
+    .equipment-image img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    #primary .equipment-image,
+    #armour .equipment-image { height: 9rem; }
+
+    .equipment-name { margin: .65rem 0 .45rem; font-weight: 700; }
+
+    dl { margin: 0; color: #d0d7d9; }
+    dl div { display: flex; flex-wrap: wrap; gap: .15rem .55rem; margin-top: .2rem; }
+    dt { font-weight: 600; }
+    dd { margin: 0; }
+
+    #stratagems {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: .55rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    #stratagems li {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      justify-items: center;
+      gap: .55rem;
+      padding: .7rem .4rem;
+      border: 1px solid #3c4449;
+      border-radius: .35rem;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    #stratagems .equipment-image { width: 3.25rem; height: 3.25rem; }
+
+    .credits { margin: .85rem 0 0; color: #b8c3c5; font-size: .875rem; }
+    .credits a { color: inherit; }
+
+    @media (max-width: 32rem) {
+      #loadout { grid-template-columns: 1fr; }
+      #stratagems { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Loadout Randomizer</h1>
+      <button type="button" id="roll">Randomize</button>
+    </header>
+    <div id="loadout" aria-live="polite" aria-atomic="true">
+      <section aria-labelledby="primary-heading">
+        <h2 id="primary-heading">Primary</h2>
+        <div id="primary"></div>
+      </section>
+      <section aria-labelledby="armour-heading">
+        <h2 id="armour-heading">Armour</h2>
+        <div id="armour"></div>
+      </section>
+      <section aria-labelledby="stratagems-heading">
+        <h2 id="stratagems-heading">Stratagems</h2>
+        <ul id="stratagems"></ul>
+      </section>
+    </div>
+    <p class="credits">Images and item data from the <a href="https://helldivers.wiki.gg/">Helldivers Wiki</a>.</p>
+    <noscript>Enable JavaScript to roll a loadout.</noscript>
+  </main>
+  <script>
+    "use strict";
+
+    const primaries = [
+      // Assault rifles
+      { name: "AR-11 Arbitrator", image: "AR-11_Arbitrator_Primary_Render.png?283658", warbond: "Ironclad Democracy (page 1)" },
+      { name: "AR-2 Coyote", image: "AR-2_Coyote_Primary_Render.png?5fee45", warbond: "Dust Devils (page 1)" },
+      { name: "AR-23 Liberator", image: "AR-23_Liberator_Primary_Render.png?97e7bb", source: "Starter Equipment" },
+      { name: "AR-23A Liberator Carbine", image: "AR-23A_Liberator_Carbine_Primary_Render.png?4b36e2", warbond: "Viper Commandos (page 1)" },
+      { name: "AR-23C Liberator Concussive", image: "AR-23C_Liberator_Concussive_Primary_Render.png?71f573", warbond: "Steeled Veterans (page 1)" },
+      { name: "AR-23L Liberator Legacy", image: "AR-23L_Liberator_Primary_Render.png?8bbe6c", source: "Liberty Day 2186" },
+      { name: "AR-23P Liberator Penetrator", image: "AR-23P_Liberator_Penetrator_Primary_Render.png?82edd5", warbond: "Helldivers Mobilize! (page 6)" },
+      { name: "AR-32 Pacifier", image: "AR-32_Pacifier_Primary_Render.png?94e4a0", warbond: "Force of Law (page 1)" },
+      { name: "AR-59 Suppressor", image: "AR-59_Suppressor_Primary_Render.png?1fe2a4", warbond: "Redacted Regiment (page 2)" },
+      { name: "AR-61 Tenderizer", image: "AR-61_Tenderizer_Primary_Render.png?7278b4", warbond: "Polar Patriots (page 1)" },
+      { name: "AR/GL-21 One-Two", image: "AR-GL-21_One_Two_Primary_Render.png?4bfb7d", warbond: "Python Commandos (page 1)" },
+      { name: "BR-14 Adjudicator", image: "BR-14_Adjudicator_Primary_Render.png?e74a3d", warbond: "Democratic Detonation (page 1)" },
+      { name: "MA5C Assault Rifle", image: "MA5C_Assault_Rifle_Primary_Render.png?ed9b79", warbond: "Halo: ODST (page 1)" },
+      { name: "StA-52 Assault Rifle", image: "StA-52_Assault_Rifle_Primary_Render.png?94bd97", warbond: "Righteous Revenants (page 1)" },
+      // Marksman rifles
+      { name: "R-2 Amendment", image: "R-2_Amendment_Primary_Render.png?804c0c", warbond: "Masters of Ceremony (page 1)" },
+      { name: "R-2124 Constitution", image: "R-2124_Constitution_Primary_Render.png?5afe2d", source: "Liberty Day" },
+      { name: "R-4 Hyena", image: "R-4_Hyena_Primary_Render.png?f84f0d", source: "Celestial Fence" },
+      { name: "R-6 Deadeye", image: "R-6_Deadeye_Primary_Render.png?85d99d", warbond: "Borderline Justice (page 1)" },
+      { name: "R-63 Diligence", image: "R-63_Diligence_Primary_Render.png?69ed5c", warbond: "Helldivers Mobilize! (page 2)" },
+      { name: "R-63CS Diligence Counter Sniper", image: "R-63CS_Diligence_Counter_Sniper_Primary_Render.png?3ff844", warbond: "Helldivers Mobilize! (page 7)" },
+      { name: "R-72 Censor", image: "R-72_Censor_Primary_Render.png?27d671", warbond: "Redacted Regiment (page 1)" },
+      // Sniper rifles
+      { name: "R-40 Sightliner", image: "R-40_Sightliner_Primary_Render.png?96e299", warbond: "Scope of Authority (page 1)" },
+      // Submachine guns
+      { name: "M7S SMG", image: "M7S_SMG_Primary_Render.png?80963e", warbond: "Halo: ODST (page 2)" },
+      { name: "MP-98 Knight", image: "MP-98_Knight_Primary_Render.png?4573f0", source: "Super Citizen Edition" },
+      { name: "SMG-203 Gallant", image: "SMG-203_Gallant_Primary_Render.png?2fac86", warbond: "Exo Experts (page 1)" },
+      { name: "SMG-32 Reprimand", image: "SMG-32_Reprimand_Primary_Render.png?19d16d", warbond: "Truth Enforcers (page 2)" },
+      { name: "SMG-37 Defender", image: "SMG-37_Defender_Primary_Render.png?b3da92", warbond: "Helldivers Mobilize! (page 3)" },
+      { name: "SMG-72 Pummeler", image: "SMG-72_Pummeler_Primary_Render.png?2acd0e", warbond: "Polar Patriots (page 2)" },
+      { name: "SMG/FLAM-34 Stoker", image: "SMGFLAM-34_Stoker_Primary_Render.png?4d9973", warbond: "Entrenched Division (page 1)" },
+      { name: "StA-11 SMG", image: "StA-11_SMG_Primary_Render.png?bd19ee", warbond: "Righteous Revenants (page 3)" },
+      // Shotguns
+      { name: "DBS-2 Double Freedom", image: "DBS-2_Shotgun_Primary_Render.png?fd2b05", source: "Superstore" },
+      { name: "M90A Shotgun", image: "M90A_Shotgun_Primary_Render.png?d8aadb", warbond: "Halo: ODST (page 3)" },
+      { name: "SG-20 Halt", image: "SG-20_Halt_Primary_Render.png?baf775", warbond: "Truth Enforcers (page 1)" },
+      { name: "SG-225 Breaker", image: "SG-225_Breaker_Primary_Render.png?2c7fc4", warbond: "Helldivers Mobilize! (page 4)" },
+      { name: "SG-225IE Breaker Incendiary", image: "SG-225IE_Breaker_Incendiary_Primary_Render.png?29206c", warbond: "Steeled Veterans (page 2)" },
+      { name: "SG-225SP Breaker Spray&Pray", image: "SG-225SP_Breaker_Spray%26Pray_Primary_Render.png?e050a4", warbond: "Helldivers Mobilize! (page 9)" },
+      { name: "SG-451 Cookout", image: "SG-451_Cookout_Primary_Render.png?a1febd", warbond: "Freedom's Flame (page 1)" },
+      { name: "SG-8 Punisher", image: "SG-8_Punisher_Primary_Render.png?c43067", warbond: "Helldivers Mobilize! (page 1)" },
+      { name: "SG-8S Slugger", image: "SG-8S_Slugger_Primary_Render.png?6296ba", warbond: "Helldivers Mobilize! (page 8)" },
+      { name: "SG-97 Sweeper", image: "SG-97_Shotgun_Primary_Render.png?255318", source: "Superstore" },
+      // Explosive
+      { name: "CB-9 Exploding Crossbow", image: "CB-9_Exploding_Crossbow_Primary_Render.png?1aa01f", warbond: "Democratic Detonation (page 3)" },
+      { name: "GL-15 Evictor", image: "GL-15_Evictor_Primary_Render.png?e6b573", warbond: "Ironclad Democracy (page 3)" },
+      { name: "R-36 Eruptor", image: "R-36_Eruptor_Primary_Render.png?2c6f66", warbond: "Democratic Detonation (page 2)" },
+      // Energy-based
+      { name: "ARC-12 Blitzer", image: "ARC-12_Blitzer_Primary_Render.png?acfea4", warbond: "Cutting Edge (page 3)" },
+      { name: "LAS-12 Sai", image: "LAS-12_Sai_Primary_Render.png?c4a072", source: "Superstore" },
+      { name: "LAS-13 Trident", image: "LAS-13_Trident_Primary_Render.png?615ace", warbond: "Siege Breakers (page 1)" },
+      { name: "LAS-16 Sickle", image: "LAS-16_Sickle_Primary_Render.png?43d245", warbond: "Cutting Edge (page 1)" },
+      { name: "LAS-17 Double-Edge Sickle", image: "LAS-17_Double-Edge_Sickle_Primary_Render.png?c64fae", warbond: "Servants of Freedom (page 1)" },
+      { name: "LAS-5 Scythe", image: "LAS-5_Scythe_Primary_Render.png?fd3c7d", warbond: "Helldivers Mobilize! (page 5)" },
+      { name: "PLAS-1 Scorcher", image: "PLAS-1_Scorcher_Primary_Render.png?732708", warbond: "Helldivers Mobilize! (page 10)" },
+      { name: "PLAS-101 Purifier", image: "PLAS-101_Purifier_Primary_Render.png?c08896", warbond: "Polar Patriots (page 3)" },
+      { name: "PLAS-39 Accelerator Rifle", image: "PLAS-39_Accelerator_Rifle_Primary_Render.png?a8ff98", warbond: "Righteous Revenants (page 2)" },
+      { name: "R/40-K Hot-Shot Marksman Rifle", image: "R-40-K_Hot-Shot_Primary_Render.png?b312a5", warbond: "Castellan's Creed (page 1)" },
+      { name: "SG-8P Punisher Plasma", image: "SG-8P_Punisher_Plasma_Primary_Render.png?1c38be", warbond: "Cutting Edge (page 2)" },
+    ];
+
+    const armour = [
+      // Light
+      { name: "AC-2 Obedient", image: "thumb/AC-2_Obedient_Armor_Render.png/246px-AC-2_Obedient_Armor_Render.png?1a8415", warbond: "Righteous Revenants (page 2)", perk: "Acclimated" },
+      { name: "AD-11 Livewire", image: "thumb/AD-11_Livewire_Armor_Render.png/246px-AD-11_Livewire_Armor_Render.png?f31fa8", source: "Superstore", perk: "Adreno-Defibrillator" },
+      { name: "AF-50 Noxious Ranger", image: "thumb/AF-50_Noxious_Ranger_Armor_Render.png/246px-AF-50_Noxious_Ranger_Armor_Render.png?f2489f", warbond: "Chemical Agents (page 1)", perk: "Advanced Filtration" },
+      { name: "B-08 Light Gunner", image: "thumb/B-08_Light_Gunner_Armor_Render.png/246px-B-08_Light_Gunner_Armor_Render.png?5fda3d", source: "Superstore", perk: "Extra Padding" },
+      { name: "BFM-16 Tanker", image: "thumb/BFM-16_Tanker_Armor_Render.png/246px-BFM-16_Tanker_Armor_Render.png?f52846", warbond: "Ironclad Democracy (page 1)", perk: "Blunt-Force Mitigation" },
+      { name: "BP-32 Jackboot", image: "thumb/BP-32_Jackboot_Armor_Render.png/246px-BP-32_Jackboot_Armor_Render.png?150b9c", warbond: "Force of Law (page 2)", perk: "Ballistic Padding" },
+      { name: "CE-07 Demolition Specialist", image: "thumb/CE-07_Demolition_Specialist_Armor_Render.png/246px-CE-07_Demolition_Specialist_Armor_Render.png?f2b4fb", warbond: "Democratic Detonation (page 2)", perk: "Engineering Kit" },
+      { name: "CE-67 Titan", image: "thumb/CE-67_Titan_Armor_Render.png/246px-CE-67_Titan_Armor_Render.png?720e4f", source: "Superstore", perk: "Engineering Kit" },
+      { name: "CE-74 Breaker", image: "thumb/CE-74_Breaker_Armor_Render.png/246px-CE-74_Breaker_Armor_Render.png?ee85f2", source: "Superstore", perk: "Engineering Kit" },
+      { name: "CM-21 Trench Paramedic", image: "thumb/CM-21_Trench_Paramedic_Armor_Render.png/246px-CM-21_Trench_Paramedic_Armor_Render.png?16ce46", source: "Superstore", perk: "Med-Kit" },
+      { name: "CPH-26 Commandant", image: "thumb/CPH-26_Commandant_Armor_Render.png/246px-CPH-26_Commandant_Armor_Render.png?e35a24", warbond: "Entrenched Division (page 2)", perk: "Concussive Padding, Hazmat" },
+      { name: "CW-4 Arctic Ranger", image: "thumb/CW-4_Arctic_Ranger_Armor_Render.png/246px-CW-4_Arctic_Ranger_Armor_Render.png?244883", warbond: "Polar Patriots (page 3)", perk: "Scout" },
+      { name: "DS-10 Big Game Hunter", image: "thumb/DS-10_Big_Game_Hunter_Armor_Render.png/246px-DS-10_Big_Game_Hunter_Armor_Render.png?36c8d4", source: "Superstore", perk: "Desert Stormer" },
+      { name: "EX-00 Prototype X", image: "thumb/EX-00_Prototype_X_Armor_Render.png/246px-EX-00_Prototype_X_Armor_Render.png?324843", warbond: "Cutting Edge (page 3)", perk: "Electrical Conduit" },
+      { name: "FS-37 Ravager", image: "thumb/FS-37_Ravager_Armor_Render.png/246px-FS-37_Ravager_Armor_Render.png?fe9808", source: "Superstore", perk: "Engineering Kit" },
+      { name: "FS-38 Eradicator", image: "thumb/FS-38_Eradicator_Armor_Render.png/246px-FS-38_Eradicator_Armor_Render.png?5093e6", source: "Superstore", perk: "Fortified" },
+      { name: "GS-11 Democracy's Deputy", image: "thumb/GS-11_Democracy%27s_Deputy_Armor_Render.png/246px-GS-11_Democracy%27s_Deputy_Armor_Render.png?db8ccc", source: "Superstore", perk: "Gunslinger" },
+      { name: "I-09 Heatseeker", image: "thumb/I-09_Heatseeker_Armor_Render.png/246px-I-09_Heatseeker_Armor_Render.png?7577df", warbond: "Freedom's Flame (page 1)", perk: "Inflammable" },
+      { name: "IE-57 Hell-Bent", image: "thumb/IE-57_Hell-Bent_Armor_Render.png/246px-IE-57_Hell-Bent_Armor_Render.png?9f72ee", source: "Superstore", perk: "Integrated Explosives" },
+      { name: "O-3 Free Spirit", image: "thumb/O-3_Free_Spirit_Armor_Render.png/246px-O-3_Free_Spirit_Armor_Render.png?e873a2", warbond: "Exo Experts (page 1)", perk: "Oxygenator" },
+      { name: "PH-9 Predator", image: "thumb/PH-9_Predator_Armor_Render.png/246px-PH-9_Predator_Armor_Render.png?6517ed", warbond: "Viper Commandos (page 1)", perk: "Peak Physique" },
+      { name: "RE-1861 Parade Commander", image: "thumb/RE-1861_Parade_Commander_Armor_Render.png/246px-RE-1861_Parade_Commander_Armor_Render.png?505fcb", warbond: "Masters of Ceremony (page 2)", perk: "Reinforced Epaulettes" },
+      { name: "RS-100 Sanctioner", image: "thumb/RS-100_Sanctioner_Armor_Render.png/246px-RS-100_Sanctioner_Armor_Render.png?c989dc", source: "Superstore", perk: "Reduced Signature" },
+      { name: "RS-20 Constrictor", image: "thumb/RS-20_Constrictor_Armor_Render.png/246px-RS-20_Constrictor_Armor_Render.png?90e610", warbond: "Python Commandos (page 1)", perk: "Rock Solid" },
+      { name: "RS-89 Shadow Paragon", image: "thumb/RS-89_Shadow_Paragon_Armor_Render.png/246px-RS-89_Shadow_Paragon_Armor_Render.png?b60c98", warbond: "Redacted Regiment (page 1)", perk: "Reduced Signature" },
+      { name: "SC-30 Trailblazer Scout", image: "thumb/SC-30_Trailblazer_Scout_Armor_Render.png/246px-SC-30_Trailblazer_Scout_Armor_Render.png?391b26", warbond: "Helldivers Mobilize! (page 7)", perk: "Scout" },
+      { name: "SC-34 Infiltrator", image: "thumb/SC-34_Infiltrator_Armor_Render.png/246px-SC-34_Infiltrator_Armor_Render.png?201f6e", warbond: "Helldivers Mobilize! (page 1)", perk: "Scout" },
+      { name: "SC-37 Legionnaire", image: "thumb/SC-37_Legionnaire_Armor_Render.png/246px-SC-37_Legionnaire_Armor_Render.png?e35814", source: "Superstore", perk: "Servo-Assisted" },
+      { name: "SR-24 Street Scout", image: "thumb/SR-24_Street_Scout_Armor_Render.png/246px-SR-24_Street_Scout_Armor_Render.png?24d174", warbond: "Urban Legends (page 1)", perk: "Siege-Ready" },
+      { name: "SS-33 Mimetic Marshal", image: "thumb/SS-33_Mimetic_Marshal_Armor_Render.png/246px-SS-33_Mimetic_Marshal_Armor_Render.png?aed424", warbond: "Scope of Authority (page 1)", perk: "Stationary Shroud" },
+      { name: "SS-500 Pale Prosecutor", image: "thumb/SS-500_Pale_Prosecutor_Armor_Render.png/246px-SS-500_Pale_Prosecutor_Armor_Render.png?38846c", source: "Superstore", perk: "Stationary Shroud" },
+      { name: "UF-16 Inspector", image: "thumb/UF-16_Inspector_Armor_Render.png/246px-UF-16_Inspector_Armor_Render.png?ea246d", warbond: "Truth Enforcers (page 3)", perk: "Unflinching" },
+      // Medium
+      { name: "A-35 Recon", image: "thumb/A-35_Recon_Armor_Render.png/246px-A-35_Recon_Armor_Render.png?63ac36", warbond: "Halo: ODST (page 2)", perk: "Feet First" },
+      { name: "A-9 Helljumper", image: "thumb/A-9_Helljumper_Armor_Render.png/246px-A-9_Helljumper_Armor_Render.png?50aa12", warbond: "Halo: ODST (page 1)", perk: "Feet First" },
+      { name: "AC-1 Dutiful", image: "thumb/AC-1_Dutiful_Armor_Render.png/246px-AC-1_Dutiful_Armor_Render.png?e85770", warbond: "Righteous Revenants (page 1)", perk: "Acclimated" },
+      { name: "AD-26 Bleeding Edge", image: "thumb/AD-26_Bleeding_Edge_Armor_Render.png/246px-AD-26_Bleeding_Edge_Armor_Render.png?913a47", warbond: "Control Group (page 1)", perk: "Adreno-Defibrillator" },
+      { name: "AF-02 Haz-Master", image: "thumb/AF-02_Haz-Master_Armor_Render.png/246px-AF-02_Haz-Master_Armor_Render.png?983940", warbond: "Chemical Agents (page 2)", perk: "Advanced Filtration" },
+      { name: "AF-91 Field Chemist", image: "thumb/AF-91_Field_Chemist_Armor_Render.png/246px-AF-91_Field_Chemist_Armor_Render.png?caed5b", source: "Superstore", perk: "Advanced Filtration" },
+      { name: "B-01 Tactical", image: "thumb/B-01_Tactical_v1_Armor_Render.png/246px-B-01_Tactical_v1_Armor_Render.png?69cda3", source: "Starter Equipment", perk: "Extra Padding" },
+      { name: "B-22 Model Citizen", image: "thumb/B-22_Model_Citizen_Armor_Render.png/246px-B-22_Model_Citizen_Armor_Render.png?fd7994", source: "Anniversary Gift", perk: "Democracy Protects" },
+      { name: "B-24 Enforcer", image: "thumb/B-24_Enforcer_Body_Icon.png/246px-B-24_Enforcer_Body_Icon.png?5af295", source: "Superstore", perk: "Fortified" },
+      { name: "BFM-77 Reformer", image: "thumb/BFM-77_Reformer_Armor_Render.png/246px-BFM-77_Reformer_Armor_Render.png?ff1252", source: "Superstore", perk: "Blunt-Force Mitigation" },
+      { name: "BP-20 Correct Officer", image: "thumb/BP-20_Correct_Officer_Armor_Render.png/246px-BP-20_Correct_Officer_Armor_Render.png?7acc68", warbond: "Force of Law (page 1)", perk: "Ballistic Padding" },
+      { name: "CE-27 Ground Breaker", image: "thumb/CE-27_Ground_Breaker_Armor_Render.png/246px-CE-27_Ground_Breaker_Armor_Render.png?f31adb", warbond: "Democratic Detonation (page 1)", perk: "Engineering Kit" },
+      { name: "CE-35 Trench Engineer", image: "thumb/CE-35_Trench_Engineer_Armor_Render.png/246px-CE-35_Trench_Engineer_Armor_Render.png?433371", warbond: "Helldivers Mobilize! (page 3)", perk: "Engineering Kit" },
+      { name: "CE-81 Juggernaut", image: "thumb/CE-81_Juggernaut_Armor_Render.png/246px-CE-81_Juggernaut_Armor_Render.png?dcbb8e", source: "Superstore", perk: "Engineering Kit" },
+      { name: "CM-09 Bonesnapper", image: "thumb/CM-09_Bonesnapper_Armor_Render.png/246px-CM-09_Bonesnapper_Armor_Render.png?118ccf", warbond: "Helldivers Mobilize! (page 4)", perk: "Med-Kit" },
+      { name: "CM-10 Clinician", image: "thumb/CM-10_Clinician_Armor_Render.png/246px-CM-10_Clinician_Armor_Render.png?4c5d51", source: "Superstore", perk: "Med-Kit" },
+      { name: "CM-14 Physician", image: "thumb/CM-14_Physician_Armor_Render.png/246px-CM-14_Physician_Armor_Render.png?84d134", warbond: "Helldivers Mobilize! (page 9)", perk: "Med-Kit" },
+      { name: "CPG-48 Sapper", image: "thumb/CPG-48_Sapper_Armor_Render.png/246px-CPG-48_Sapper_Armor_Render.png?9f1fa9", warbond: "Entrenched Division (page 1)", perk: "Concussive Padding, Grenadier" },
+      { name: "CW-9 White Wolf", image: "thumb/CW-9_White_Wolf_Armor_Render.png/246px-CW-9_White_Wolf_Armor_Render.png?747c52", source: "Superstore", perk: "Extra Padding" },
+      { name: "DP-00 Tactical", image: "thumb/DP-00_Tactical_Armor_Render.png/246px-DP-00_Tactical_Armor_Render.png?4583f6", source: "Liberty Day", perk: "Democracy Protects" },
+      { name: "DP-11 Champion of the People", image: "thumb/DP-11_Champion_of_the_People_Armor_Render.png/246px-DP-11_Champion_of_the_People_Armor_Render.png?c3ea46", warbond: "Helldivers Mobilize! (page 10)", perk: "Democracy Protects" },
+      { name: "DP-40 Hero of the Federation", image: "thumb/DP-40_Hero_of_the_Federation_Armor_Render.png/246px-DP-40_Hero_of_the_Federation_Armor_Render.png?aaafd0", warbond: "Helldivers Mobilize! (page 5)", perk: "Democracy Protects" },
+      { name: "DP-53 Savior of the Free", image: "thumb/DP-53_Savior_of_the_Free_Armor_Render.png/246px-DP-53_Savior_of_the_Free_Armor_Render.png?24c285", source: "Super Citizen Edition", perk: "Democracy Protects" },
+      { name: "DP-8 Mountain-Scaled", image: "thumb/DP-8_Mountain-Scaled_Armor_Render.png/246px-DP-8_Mountain-Scaled_Armor_Render.png?6d8716", source: "Superstore", perk: "Siege-Ready" },
+      { name: "DS-191 Scorpion", image: "thumb/DS-191_Scorpion_Armor_Render.png/246px-DS-191_Scorpion_Armor_Render.png?49c43d", warbond: "Dust Devils (page 2)", perk: "Desert Stormer" },
+      { name: "EX-03 Prototype 3", image: "thumb/EX-03_Prototype_3_Armor_Render.png/246px-EX-03_Prototype_3_Armor_Render.png?995556", warbond: "Cutting Edge (page 1)", perk: "Electrical Conduit" },
+      { name: "EX-16 Prototype 16", image: "thumb/EX-16_Prototype_16_Armor_Render.png/246px-EX-16_Prototype_16_Armor_Render.png?ba784e", warbond: "Cutting Edge (page 2)", perk: "Electrical Conduit" },
+      { name: "FS-34 Exterminator", image: "thumb/FS-34_Exterminator_Armor_Render.png/246px-FS-34_Exterminator_Armor_Render.png?7f80c9", source: "Superstore", perk: "Fortified" },
+      { name: "GS-17 Frontier Marshal", image: "thumb/GS-17_Frontier_Marshal_Armor_Render.png/246px-GS-17_Frontier_Marshal_Armor_Render.png?afb377", warbond: "Borderline Justice (page 1)", perk: "Gunslinger" },
+      { name: "I-102 Draconaught", image: "thumb/I-102_Draconaught_Armor_Render.png/246px-I-102_Draconaught_Armor_Render.png?be9733", warbond: "Freedom's Flame (page 2)", perk: "Inflammable" },
+      { name: "I-92 Fire Fighter", image: "thumb/I-92_Fire_Fighter_Armor_Render.png/246px-I-92_Fire_Fighter_Armor_Render.png?7235b8", source: "Superstore", perk: "Inflammable" },
+      { name: "IE-12 Righteous", image: "thumb/IE-12_Righteous_Armor_Render.png/246px-IE-12_Righteous_Armor_Render.png?4ddc55", warbond: "Servants of Freedom (page 2)", perk: "Integrated Explosives" },
+      { name: "IE-3 Martyr", image: "thumb/IE-3_Martyr_Armor_Render.png/246px-IE-3_Martyr_Armor_Render.png?80eaea", warbond: "Servants of Freedom (page 1)", perk: "Integrated Explosives" },
+      { name: "O-44 Bonded Pilot", image: "thumb/O-44_Bonded_Pilot_Armor_Render.png/246px-O-44_Bonded_Pilot_Armor_Render.png?ed5289", source: "Superstore", perk: "Oxygenator" },
+      { name: "PH-56 Jaguar", image: "thumb/PH-56_Jaguar_Armor_Render.png/246px-PH-56_Jaguar_Armor_Render.png?3a9fb7", source: "Superstore", perk: "Peak Physique" },
+      { name: "RE-2310 Honorary Guard", image: "thumb/RE-2310_Honorary_Guard_Armor_Render.png/246px-RE-2310_Honorary_Guard_Armor_Render.png?6146a1", warbond: "Masters of Ceremony (page 1)", perk: "Reinforced Epaulettes" },
+      { name: "RS-6 Fiend Destroyer", image: "thumb/RS-6_Fiend_Destroyer_Armor_Render.png/246px-RS-6_Fiend_Destroyer_Armor_Render.png?c9aac7", source: "Superstore", perk: "Rock Solid" },
+      { name: "RS-67 Null Cipher", image: "thumb/RS-67_Null_Cipher_Armor_Render.png/246px-RS-67_Null_Cipher_Armor_Render.png?173cae", warbond: "Redacted Regiment (page 2)", perk: "Reduced Signature" },
+      { name: "SA-04 Combat Technician", image: "thumb/SA-04_Combat_Technician_Armor_Render.png/246px-SA-04_Combat_Technician_Armor_Render.png?52bfe9", warbond: "Helldivers Mobilize! (page 8)", perk: "Scout" },
+      { name: "SA-12 Servo Assisted", image: "thumb/SA-12_Servo_Assisted_Armor_Render.png/246px-SA-12_Servo_Assisted_Armor_Render.png?dddc63", warbond: "Steeled Veterans (page 2)", perk: "Servo-Assisted" },
+      { name: "SA-25 Steel Trooper", image: "thumb/SA-25_Steel_Trooper_Armor_Render.png/246px-SA-25_Steel_Trooper_Armor_Render.png?e5cc32", warbond: "Steeled Veterans (page 1)", perk: "Servo-Assisted" },
+      { name: "SA-7 Headfirst", image: "thumb/SA-7_Headfirst_Armor_Render.png/246px-SA-7_Headfirst_Armor_Render.png?796aa6", warbond: "Siege Breakers (page 1)", perk: "Supplemental Adrenaline" },
+      { name: "SC-15 Drone Master", image: "thumb/SC-15_Drone_Master_Armor_Render.png/246px-SC-15_Drone_Master_Armor_Render.png?825e5d", source: "Superstore", perk: "Engineering Kit" },
+      { name: "SS-15 Focal Point", image: "thumb/SS-15_Focal_Point_Armor_Render.png/246px-SS-15_Focal_Point_Armor_Render.png?e6f845", warbond: "Scope of Authority (page 2)", perk: "Stationary Shroud" },
+      { name: "TG-8 Sharpshooter", image: "thumb/TG-8_Sharpshooter_Armor_Render.png/246px-TG-8_Sharpshooter_Armor_Render.png?49c6cb", warbond: "Castellan's Creed (page 1)", perk: "True Grit" },
+      { name: "TR-117 Alpha Commander", image: "thumb/TR-117_Alpha_Commander_Armor_Render.png/246px-TR-117_Alpha_Commander_Armor_Render.png?bb4656", source: "Downloadable Content", perk: "Med-Kit" },
+      { name: "TR-40 Gold Eagle", image: "thumb/TR-40_Gold_Eagle_Armor_Render.png/246px-TR-40_Gold_Eagle_Armor_Render.png?6c1bea", source: "Escalation of Freedom", perk: "Extra Padding" },
+      { name: "TR-7 Ambassador of the Brand", image: "thumb/TR-7_Ambassador_of_the_Brand_Armor_Render.png/246px-TR-7_Ambassador_of_the_Brand_Armor_Render.png?6dc397", source: "Pre-Order Bonus", perk: "Extra Padding" },
+      { name: "TR-9 Cavalier of Democracy", image: "thumb/TR-9_Cavalier_of_Democracy_Armor_Render.png/246px-TR-9_Cavalier_of_Democracy_Armor_Render.png?767174", source: "Pre-Order Bonus", perk: "Democracy Protects" },
+      { name: "UF-50 Bloodhound", image: "thumb/UF-50_Bloodhound_Armor_Render.png/246px-UF-50_Bloodhound_Armor_Render.png?823c98", warbond: "Truth Enforcers (page 2)", perk: "Unflinching" },
+      { name: "UF-84 Doubt Killer", image: "thumb/UF-84_Doubt_Killer_Armor_Render.png/246px-UF-84_Doubt_Killer_Armor_Render.png?f3347b", source: "Superstore", perk: "Unflinching" },
+      // Heavy
+      { name: "AD-49 Apollonian", image: "thumb/AD-49_Apollonian_Armor_Render.png/246px-AD-49_Apollonian_Armor_Render.png?71eeac", warbond: "Control Group (page 2)", perk: "Adreno-Defibrillator" },
+      { name: "AF-52 Lockdown", image: "thumb/AF-52_Lockdown_Armor_Render.png/246px-AF-52_Lockdown_Armor_Render.png?98493b", source: "Superstore", perk: "Advanced Filtration" },
+      { name: "B-27 Fortified Commando", image: "thumb/B-27_Fortified_Commando_Armor_Render.png/246px-B-27_Fortified_Commando_Armor_Render.png?8d38ea", source: "Superstore", perk: "Extra Padding" },
+      { name: "BFM-220 Ironclad", image: "thumb/BFM-220_Ironclad_Armor_Render.png/246px-BFM-220_Ironclad_Armor_Render.png?fd09a7", warbond: "Ironclad Democracy (page 2)", perk: "Blunt-Force Mitigation" },
+      { name: "BP-77 Grand Juror", image: "thumb/BP-77_Grand_Juror_Armor_Render.png/246px-BP-77_Grand_Juror_Armor_Render.png?8cfa23", source: "Superstore", perk: "Ballistic Padding" },
+      { name: "CE-101 Guerilla Gorilla", image: "thumb/CE-101_Guerilla_Gorilla_Armor_Render.png/246px-CE-101_Guerilla_Gorilla_Armor_Render.png?a78ae1", source: "Superstore", perk: "Engineering Kit" },
+      { name: "CE-64 Grenadier", image: "thumb/CE-64_Grenadier_Armor_Render.png/246px-CE-64_Grenadier_Armor_Render.png?48cbf5", source: "Superstore", perk: "Engineering Kit" },
+      { name: "CM-17 Butcher", image: "thumb/CM-17_Butcher_Body_Icon.png/246px-CM-17_Butcher_Body_Icon.png?d7b007", source: "Superstore", perk: "Med-Kit" },
+      { name: "CPR-80 Bulwark", image: "thumb/CPR-80_Bulwark_Armor_Render.png/246px-CPR-80_Bulwark_Armor_Render.png?dfef3c", source: "Superstore", perk: "Concussive Padding, Reinforced" },
+      { name: "CW-22 Kodiak", image: "thumb/CW-22_Kodiak_Armor_Render.png/246px-CW-22_Kodiak_Armor_Render.png?43ff69", warbond: "Polar Patriots (page 2)", perk: "Fortified" },
+      { name: "CW-36 Winter Warrior", image: "thumb/CW-36_Winter_Warrior_Armor_Render.png/246px-CW-36_Winter_Warrior_Armor_Render.png?808eaf", warbond: "Polar Patriots (page 1)", perk: "Servo-Assisted" },
+      { name: "DS-42 Federation's Blade", image: "thumb/DS-42_Federation%27s_Blade_Armor_Render.png/246px-DS-42_Federation%27s_Blade_Armor_Render.png?94c332", warbond: "Dust Devils (page 1)", perk: "Desert Stormer" },
+      { name: "FS-05 Marksman", image: "thumb/FS-05_Marksman_Body_Icon.png/246px-FS-05_Marksman_Body_Icon.png?2b8bcd", warbond: "Helldivers Mobilize! (page 2)", perk: "Fortified" },
+      { name: "FS-11 Executioner", image: "thumb/FS-11_Executioner_Armor_Render.png/246px-FS-11_Executioner_Armor_Render.png?40cfda", source: "Superstore", perk: "Fortified" },
+      { name: "FS-23 Battle Master", image: "thumb/FS-23_Battle_Master_Armor_Render.png/246px-FS-23_Battle_Master_Armor_Render.png?f7f3b7", warbond: "Helldivers Mobilize! (page 6)", perk: "Fortified" },
+      { name: "FS-55 Devastator", image: "thumb/FS-55_Devastator_Armor_Render.png/246px-FS-55_Devastator_Armor_Render.png?d45cb6", warbond: "Democratic Detonation (page 3)", perk: "Fortified" },
+      { name: "FS-61 Dreadnought", image: "thumb/FS-61_Dreadnought_Armor_Render.png/246px-FS-61_Dreadnought_Armor_Render.png?693c27", source: "Superstore", perk: "Servo-Assisted" },
+      { name: "GS-66 Lawmaker", image: "thumb/GS-66_Lawmaker_Armor_Render.png/246px-GS-66_Lawmaker_Armor_Render.png?d367b5", warbond: "Borderline Justice (page 2)", perk: "Gunslinger" },
+      { name: "I-44 Salamander", image: "thumb/I-44_Salamander_Armor_Render.png/246px-I-44_Salamander_Armor_Render.png?2a2d82", source: "Superstore", perk: "Inflammable" },
+      { name: "KDM-500 Outrider", image: "thumb/KDM-500_Outrider_Armor_Render.png/246px-KDM-500_Outrider_Armor_Render.png?66afec", source: "Permanent Enclosure", perk: "Kinetic Displacement Mitigation" },
+      { name: "O-2 Heavy Operator", image: "thumb/O-2_Heavy_Operator_Armor_Render.png/246px-O-2_Heavy_Operator_Armor_Render.png?f2395b", warbond: "Exo Experts (page 2)", perk: "Oxygenator" },
+      { name: "PH-202 Twigsnapper", image: "thumb/PH-202_Twigsnapper_Armor_Render.png/246px-PH-202_Twigsnapper_Armor_Render.png?d2a694", warbond: "Viper Commandos (page 2)", perk: "Peak Physique" },
+      { name: "RE-824 Bearer of the Standard", image: "thumb/RE-824_Bearer_of_the_Standard_Armor_Render.png/246px-RE-824_Bearer_of_the_Standard_Armor_Render.png?3f5993", source: "Superstore", perk: "Reinforced Epaulettes" },
+      { name: "RS-40 Beast of Prey", image: "thumb/RS-40_Beast_of_Prey_Armor_Render.png/246px-RS-40_Beast_of_Prey_Armor_Render.png?f5be22", warbond: "Python Commandos (page 2)", perk: "Rock Solid" },
+      { name: "SA-32 Dynamo", image: "thumb/SA-32_Dynamo_Armor_Render.png/246px-SA-32_Dynamo_Armor_Render.png?d1a59f", warbond: "Steeled Veterans (page 3)", perk: "Servo-Assisted" },
+      { name: "SA-8 Ram", image: "thumb/SA-8_Ram_Armor_Render.png/246px-SA-8_Ram_Armor_Render.png?f57664", warbond: "Siege Breakers (page 2)", perk: "Supplemental Adrenaline" },
+      { name: "SR-18 Roadblock", image: "thumb/SR-18_Roadblock_Armor_Render.png/246px-SR-18_Roadblock_Armor_Render.png?4314dc", warbond: "Urban Legends (page 2)", perk: "Siege-Ready" },
+      { name: "SR-64 Cinderblock", image: "thumb/SR-64_Cinderblock_Armor_Render.png/246px-SR-64_Cinderblock_Armor_Render.png?d5352e", source: "Superstore", perk: "Siege-Ready" },
+      { name: "TG-122 Demo-Trooper", image: "thumb/TG-122_Demo-Trooper_Armor_Render.png/246px-TG-122_Demo-Trooper_Armor_Render.png?95857c", warbond: "Castellan's Creed (page 2)", perk: "True Grit" },
+      { name: "TR-62 Knight", image: "thumb/TR-62_Knight_Armor_Render.png/246px-TR-62_Knight_Armor_Render.png?7b41f4", source: "Pre-Order Bonus", perk: "Servo-Assisted" },
+    ];
+
+    const stratagemGroups = {
+      blue: [
+        // Support weapons
+        { name: "40-K Meltagun", image: "Meltagun_Stratagem_Icon_Background.svg?c412fb" },
+        { name: "AC-8 Autocannon", image: "Autocannon_Stratagem_Icon_Background.svg?556cf5" },
+        { name: "AMW-20 Apex", image: "Apex_Stratagem_Icon_Background.svg?ff81dc" },
+        { name: "APW-1 Anti-Materiel Rifle", image: "Anti-Materiel_Rifle_Stratagem_Icon_Background.svg?37652d" },
+        { name: "ARC-3 Arc Thrower", image: "Arc_Thrower_Stratagem_Icon_Background.svg?5909af" },
+        { name: "B/FLAM-80 Cremator", image: "Cremator_Stratagem_Icon_Background.svg?ce54a7" },
+        { name: "B/MD C4 Pack", image: "C4_Pack_Stratagem_Icon_Background.svg?bfb8f2" },
+        { name: "CQC-1 One True Flag", image: "One_True_Flag_Stratagem_Icon_Background.svg?e919be" },
+        { name: "CQC-20 Breaching Hammer", image: "Breaching_Hammer_Stratagem_Icon_Background.svg?65dd9b" },
+        { name: "CQC-9 Defoliation Tool", image: "Defoliation_Tool_Stratagem_Icon_Background.svg?418556" },
+        { name: "EAT-17 Expendable Anti-Tank", image: "Expendable_Anti-Tank_Stratagem_Icon_Background.svg?d52ad8" },
+        { name: "EAT-411 Leveller", image: "Leveller_Stratagem_Icon_Background.svg?8f0c64" },
+        { name: "EAT-700 Expendable Napalm", image: "Expendable_Napalm_Stratagem_Icon_Background.svg?117778" },
+        { name: "FAF-14 Spear", image: "Spear_Stratagem_Icon_Background.svg?3f7623" },
+        { name: "FLAM-40 Flamethrower", image: "Flamethrower_Stratagem_Icon_Background.svg?648ed8" },
+        { name: "GL-21 Grenade Launcher", image: "Grenade_Launcher_Stratagem_Icon_Background.svg?168a60" },
+        { name: "GL-28 Belt-Fed Grenade Launcher", image: "Belt-Fed_Grenade_Launcher_Stratagem_Icon_Background.svg?4c99f1" },
+        { name: "GL-52 De-Escalator", image: "De-Escalator_Stratagem_Icon_Background.svg?7a9dca" },
+        { name: "GR-8 Recoilless Rifle", image: "Recoilless_Rifle_Stratagem_Icon_Background.svg?aaa0b7" },
+        { name: "LAS-44 Nova", image: "Nova_Stratagem_Icon_Background.svg?44e1ea" },
+        { name: "LAS-98 Laser Cannon", image: "Laser_Cannon_Stratagem_Icon_Background.svg?21b5f6" },
+        { name: "LAS-99 Quasar Cannon", image: "Quasar_Cannon_Stratagem_Icon_Background.svg?559764" },
+        { name: "M-1000 Maxigun", image: "Maxigun_Stratagem_Icon_Background.svg?d08884" },
+        { name: "M-105 Stalwart", image: "Stalwart_Stratagem_Icon_Background.svg?89f988" },
+        { name: "MG-206 Heavy Machine Gun", image: "Heavy_Machine_Gun_Stratagem_Icon_Background.svg?7f60eb" },
+        { name: "MG-43 Machine Gun", image: "Machine_Gun_Stratagem_Icon_Background.svg?35fc07" },
+        { name: "MGX-42 Bullet Storm", image: "Bullet_Storm_Stratagem_Icon_Background.svg?97328f" },
+        { name: "MLS-4X Commando", image: "Commando_Stratagem_Icon_Background.svg?6ea896" },
+        { name: "MS-11 Solo Silo", image: "Solo_Silo_Stratagem_Icon_Background.svg?69f961" },
+        { name: "PLAS-45 Epoch", image: "Epoch_Stratagem_Icon_Background.svg?bfe6b1" },
+        { name: "RL-77 Airburst Rocket Launcher", image: "Airburst_Rocket_Launcher_Stratagem_Icon_Background.svg?6755a7" },
+        { name: "RS-422 Railgun", image: "Railgun_Stratagem_Icon_Background.svg?7030a2" },
+        { name: "S-11 Speargun", image: "Speargun_Stratagem_Icon_Background.svg?2f0be9" },
+        { name: "StA-X3 W.A.S.P. Launcher", image: "W.A.S.P._Launcher_Stratagem_Icon_Background.svg?a33ba8" },
+        { name: "TX-41 Sterilizer", image: "Sterilizer_Stratagem_Icon_Background.svg?a42db7" },
+        // Backpacks
+        { name: "AX/AR-23 Guard Dog", image: "Guard_Dog_Stratagem_Icon_Background.svg?eb2b15" },
+        { name: "AX/ARC-3 K-9", image: "K-9_Stratagem_Icon_Background.svg?3ed7fe" },
+        { name: "AX/FLAM-75 Hot Dog", image: "Hot_Dog_Stratagem_Icon_Background.svg?c8e42d" },
+        { name: "AX/LAS-5 Rover", image: "Rover_Stratagem_Icon_Background.svg?12ad26" },
+        { name: "AX/TX-13 Dog Breath", image: "Dog_Breath_Stratagem_Icon_Background.svg?b93a24" },
+        { name: "B-1 Supply Pack", image: "Supply_Pack_Stratagem_Icon_Background.svg?6f6c53" },
+        { name: "B-100 Portable Hellbomb", image: "Portable_Hellbomb_Stratagem_Icon_Background.svg?e8bd76" },
+        { name: "LIFT-182 Warp Pack", image: "Warp_Pack_Stratagem_Icon_Background.svg?b27510" },
+        { name: "LIFT-850 Jump Pack", image: "Jump_Pack_Stratagem_Icon_Background.svg?464278" },
+        { name: "LIFT-860 Hover Pack", image: "Hover_Pack_Stratagem_Icon_Background.svg?63fe63" },
+        { name: "SH-20 Ballistic Shield Backpack", image: "Ballistic_Shield_Backpack_Stratagem_Icon_Background.svg?6697d4" },
+        { name: "SH-32 Shield Generator Pack", image: "Shield_Generator_Pack_Stratagem_Icon_Background.svg?2f4980" },
+        { name: "SH-51 Directional Shield", image: "Directional_Shield_Stratagem_Icon_Background.svg?a0bd68" },
+        // Vehicles
+        { name: "EXO-45 Patriot Exosuit", image: "Patriot_Exosuit_Stratagem_Icon_Background.svg?3fa7de" },
+        { name: "EXO-49 Emancipator Exosuit", image: "Emancipator_Exosuit_Stratagem_Icon_Background.svg?336419" },
+        { name: "EXO-51 Lumberer Exosuit", image: "Lumberer_Exosuit_Stratagem_Icon_Background.svg?c3895f" },
+        { name: "EXO-55 Breakthrough Exosuit", image: "Breakthrough_Exosuit_Stratagem_Icon_Background.svg?d9bc7c" },
+        { name: "M-102 Gunner FRV", image: "Fast_Recon_Vehicle_Stratagem_Icon_Background.svg?d9bba1" },
+        { name: "M-103 Supply FRV", image: "Supply_FRV_Stratagem_Icon_Background.svg?415445" },
+        { name: "M-104 Incinerator FRV", image: "Incinerator_FRV_Stratagem_Icon_Background.svg?f5764f" },
+        { name: "TD-110 Maelstrom", image: "Maelstrom_Stratagem_Icon_Background.svg?23094c" },
+        { name: "TD-220 Bastion MK XVI", image: "Bastion_MK_XVI_Stratagem_Icon_Background.svg?9de952" },
+      ],
+      red: [
+        // Orbital
+        { name: "Orbital 120mm HE Barrage", image: "Orbital_120mm_HE_Barrage_Stratagem_Icon_Background.svg?17de59" },
+        { name: "Orbital 380mm HE Barrage", image: "Orbital_380mm_HE_Barrage_Stratagem_Icon_Background.svg?eb3f95" },
+        { name: "Orbital Airburst Strike", image: "Orbital_Airburst_Strike_Stratagem_Icon_Background.svg?c77894" },
+        { name: "Orbital EMS Strike", image: "Orbital_EMS_Strike_Stratagem_Icon_Background.svg?5e3ef9" },
+        { name: "Orbital Gas Strike", image: "Orbital_Gas_Strike_Stratagem_Icon_Background.svg?668a1e" },
+        { name: "Orbital Gatling Barrage", image: "Orbital_Gatling_Barrage_Stratagem_Icon_Background.svg?f73d52" },
+        { name: "Orbital Laser", image: "Orbital_Laser_Stratagem_Icon_Background.svg?ae2ad3" },
+        { name: "Orbital Napalm Barrage", image: "Orbital_Napalm_Barrage_Stratagem_Icon_Background.svg?be78c4" },
+        { name: "Orbital Precision Strike", image: "Orbital_Precision_Strike_Stratagem_Icon_Background.svg?e78550" },
+        { name: "Orbital Railcannon Strike", image: "Orbital_Railcannon_Strike_Stratagem_Icon_Background.svg?ee9232" },
+        { name: "Orbital Smoke Strike", image: "Orbital_Smoke_Strike_Stratagem_Icon_Background.svg?a05463" },
+        { name: "Orbital Walking Barrage", image: "Orbital_Walking_Barrage_Stratagem_Icon_Background.svg?cb3bf0" },
+        // Eagle
+        { name: "Eagle 110mm Rocket Pods", image: "Eagle_110mm_Rocket_Pods_Stratagem_Icon_Background.svg?2e218a" },
+        { name: "Eagle 500kg Bomb", image: "Eagle_500kg_Bomb_Stratagem_Icon_Background.svg?48a0f3" },
+        { name: "Eagle Airstrike", image: "Eagle_Airstrike_Stratagem_Icon_Background.svg?b497fe" },
+        { name: "Eagle Cluster Bomb", image: "Eagle_Cluster_Bomb_Stratagem_Icon_Background.svg?b730d4" },
+        { name: "Eagle Gas Airstrike", image: "Eagle_Gas_Airstrike_Stratagem_Icon_Background.svg?e47dc1" },
+        { name: "Eagle Napalm Airstrike", image: "Eagle_Napalm_Airstrike_Stratagem_Icon_Background.svg?735c8b" },
+        { name: "Eagle Smoke Strike", image: "Eagle_Smoke_Strike_Stratagem_Icon_Background.svg?159f1f" },
+        { name: "Eagle Strafing Run", image: "Eagle_Strafing_Run_Stratagem_Icon_Background.svg?fe286e" },
+      ],
+      green: [
+        // Emplacements
+        { name: "E/AT-12 Anti-Tank Emplacement", image: "Anti-Tank_Emplacement_Stratagem_Icon_Background.svg?d8adfc" },
+        { name: "E/GL-21 Grenadier Battlement", image: "Grenadier_Battlement_Stratagem_Icon_Background.svg?80ed1c" },
+        { name: "E/MG-101 HMG Emplacement", image: "HMG_Emplacement_Stratagem_Icon_Background.svg?204f0f" },
+        { name: "FX-12 Shield Generator Relay", image: "Shield_Generator_Relay_Stratagem_Icon_Background.svg?8f5149" },
+        { name: "MD-17 Anti-Tank Mines", image: "Anti-Tank_Mines_Stratagem_Icon_Background.svg?4573f2" },
+        { name: "MD-6 Anti-Personnel Minefield", image: "Anti-Personnel_Minefield_Stratagem_Icon_Background.svg?ac79b4" },
+        { name: "MD-8 Gas Mines", image: "Gas_Mines_Stratagem_Icon_Background.svg?b10ef8" },
+        { name: "MD-I4 Incendiary Mines", image: "Incendiary_Mines_Stratagem_Icon_Background.svg?6c612f" },
+        // Sentries
+        { name: "A/AC-8 Autocannon Sentry", image: "Autocannon_Sentry_Stratagem_Icon_Background.svg?428b69" },
+        { name: "A/ARC-3 Tesla Tower", image: "Tesla_Tower_Stratagem_Icon_Background.svg?a40a2e" },
+        { name: "A/FLAM-40 Flame Sentry", image: "Flame_Sentry_Stratagem_Icon_Background.svg?9214db" },
+        { name: "A/G-16 Gatling Sentry", image: "Gatling_Sentry_Stratagem_Icon_Background.svg?7ee8f3" },
+        { name: "A/GM-17 Gas Mortar Sentry", image: "Gas_Mortar_Sentry_Stratagem_Icon_Background.svg?8948b9" },
+        { name: "A/LAS-98 Laser Sentry", image: "Laser_Sentry_Stratagem_Icon_Background.svg?90ea4a" },
+        { name: "A/M-12 Mortar Sentry", image: "Mortar_Sentry_Stratagem_Icon_Background.svg?30dea2" },
+        { name: "A/M-23 EMS Mortar Sentry", image: "EMS_Mortar_Sentry_Stratagem_Icon_Background.svg?202fdc" },
+        { name: "A/MG-43 Machine Gun Sentry", image: "Machine_Gun_Sentry_Stratagem_Icon_Background.svg?331c9d" },
+        { name: "A/MLS-4X Rocket Sentry", image: "Rocket_Sentry_Stratagem_Icon_Background.svg?1af08c" },
+      ],
+    };
+
+    const wikiImages = "https://helldivers.wiki.gg/images/";
+    const primaryResult = document.getElementById("primary");
+    const armourResult = document.getElementById("armour");
+    const stratagemResults = document.getElementById("stratagems");
+
+    const randomWord = new Uint32Array(1);
+    const randomWordRange = 2 ** 32;
+
+    function randomIndex(length) {
+      // Discard the tail so every index has the same number of possible draws.
+      const limit = randomWordRange - (randomWordRange % length);
+      do {
+        crypto.getRandomValues(randomWord);
+      } while (randomWord[0] >= limit);
+
+      return randomWord[0] % length;
+    }
+
+    function imageLink(item) {
+      const link = document.createElement("a");
+      link.className = "equipment-image";
+      link.href = wikiImages + item.image;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.setAttribute("aria-label", "Open image of " + item.name + " in a new tab");
+
+      const image = document.createElement("img");
+      image.alt = "";
+      image.decoding = "async";
+      image.loading = "lazy";
+      image.src = link.href;
+      link.append(image);
+      return link;
+    }
+
+    function detail(label, value) {
+      const term = document.createElement("dt");
+      term.textContent = label;
+      const description = document.createElement("dd");
+      description.textContent = value;
+      const row = document.createElement("div");
+      row.append(term, description);
+      return row;
+    }
+
+    function showGear(target, item) {
+      const name = document.createElement("p");
+      name.className = "equipment-name";
+      name.textContent = item.name;
+
+      const details = document.createElement("dl");
+      details.append(detail(item.warbond ? "Warbond" : "Source", item.warbond ?? item.source));
+      if (item.perk) details.append(detail("Perk", item.perk));
+      target.replaceChildren(imageLink(item), name, details);
+    }
+
+    function rollLoadout() {
+      showGear(primaryResult, primaries[randomIndex(primaries.length)]);
+      showGear(armourResult, armour[randomIndex(armour.length)]);
+
+      const availableGroups = Object.values(stratagemGroups).map(group => [...group]);
+      const results = [];
+      for (let slot = 0; slot < 4; slot += 1) {
+        // Pick the colour first so pool size does not affect its odds.
+        const group = availableGroups[randomIndex(availableGroups.length)];
+        const [stratagem] = group.splice(randomIndex(group.length), 1);
+        const item = document.createElement("li");
+        const name = document.createElement("span");
+        name.textContent = stratagem.name;
+        item.append(imageLink(stratagem), name);
+        results.push(item);
+      }
+      stratagemResults.replaceChildren(...results);
+    }
+
+    document.getElementById("roll").addEventListener("click", rollLoadout);
+    rollLoadout();
+  </script>
+</body>
+</html>
